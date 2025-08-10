@@ -23,18 +23,27 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+    
+    // Emit current players state to all clients
+    const emitPlayersUpdate = () => {
+        io.emit('playersUpdate', {
+            white: players.white ? true : false,
+            black: players.black ? true : false
+        });
+    };
+
     if(!players.white){
         players.white = socket.id;
         socket.emit('playerColor', 'W');
+        emitPlayersUpdate();
     } else if(!players.black){
         players.black = socket.id;
         socket.emit('playerColor', 'B');
-    }
-    else {
+        emitPlayersUpdate();
+    } else {
         socket.emit('gameFull', 'The game is full. Please wait for a player to leave.');
     }
 
-   
     socket.on('move', (move) => {
         try { 
             if (chess.turn() === 'W' && socket.id !== players.white) return;
@@ -56,11 +65,13 @@ io.on('connection', (socket) => {
     });
      // Handle disconnect
     socket.on('disconnect', () => {
-      if(socket.id === players.white) {
-          delete players.white;
-      } else if(socket.id === players.black) {
-          delete players.black;
-      }
+        if(socket.id === players.white) {
+            delete players.white;
+            emitPlayersUpdate();
+        } else if(socket.id === players.black) {
+            delete players.black;
+            emitPlayersUpdate();
+        }
     });
 
 });
