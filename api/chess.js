@@ -1,6 +1,6 @@
-const socket = io();
+const { Chess } = require('chess.js');
 
-const chess = new Chess();
+let chess = new Chess();
 const boardElement = document.querySelector('.chessboard');
 let playerColor = 'w'; // Default to white for demo
 
@@ -94,3 +94,25 @@ const loadBoard = async () => {
 };
 
 loadBoard();
+
+module.exports = async (req, res) => {
+  if (req.method === 'POST') {
+    let body = req.body;
+    if (!body || typeof body !== 'object') {
+      try {
+        body = JSON.parse(req.body);
+      } catch (e) {
+        body = {};
+      }
+    }
+    const { move } = body;
+    const result = chess.move(move);
+    if (result) {
+      res.status(200).json({ fen: chess.fen(), move: result });
+    } else {
+      res.status(400).json({ error: 'Invalid move' });
+    }
+  } else {
+    res.status(200).json({ fen: chess.fen() });
+  }
+};
